@@ -1,0 +1,15 @@
+[project]
+name = "air-defense-backend"
+version = "0.1.0"
+description = "Backend API and simulation engine for an air defense interceptor demo."
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115.0",
+  "numpy>=2.1.0",
+  "pydantic>=2.9.0",
+  "uvicorn>=0.30.0",
+]
+
+[tool.ruff]
+line-length = 100
+

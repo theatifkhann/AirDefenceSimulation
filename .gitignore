@@ -1,0 +1,38 @@
+# Dependencies
+frontend/node_modules/
+backend/.venv/
+venv/
+.venv/
+
+# Builds
+frontend/dist/
+*.egg-info/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# OS & editors
+.DS_Store
+**/.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Toolchain / local junk
+.swift-module-cache/
+.tmp-export-launch*
+*.tsbuildinfo
+tmp_frames/

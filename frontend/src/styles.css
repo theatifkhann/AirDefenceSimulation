@@ -1,0 +1,1114 @@
+:root {
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  color: #edf4fa;
+  --hud-bg: rgba(6, 14, 22, 0.74);
+  --hud-bg-strong: rgba(5, 12, 19, 0.88);
+  --hud-bg-soft: rgba(13, 24, 35, 0.56);
+  --hud-panel-top: rgba(255, 255, 255, 0.05);
+  --hud-line: rgba(109, 164, 199, 0.17);
+  --hud-line-strong: rgba(136, 199, 237, 0.34);
+  --hud-glow: rgba(81, 157, 212, 0.12);
+  --hud-shadow: rgba(0, 0, 0, 0.42);
+  --hud-text-soft: #b7c7d3;
+  --hud-text-dim: #738b9d;
+  --hud-accent: #8ecae9;
+  --hud-accent-strong: #f2fbff;
+  --hud-warn: #c48f57;
+  --hud-danger: #b76b66;
+  --hud-success: #9fcdb9;
+  background:
+    radial-gradient(circle at top left, rgba(31, 69, 97, 0.34), transparent 30%),
+    radial-gradient(circle at top right, rgba(17, 37, 58, 0.18), transparent 24%),
+    linear-gradient(145deg, #04090f 0%, #09131d 40%, #0e1823 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+html,
+#root {
+  min-height: 100vh;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.appShell {
+  padding: 14px;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.eyebrow {
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #82bfdc;
+  font-size: 0.64rem;
+  margin: 0 0 10px;
+}
+
+.sceneHost,
+.panel {
+  position: relative;
+  border: 1px solid var(--hud-line);
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, var(--hud-panel-top), rgba(255, 255, 255, 0)),
+    var(--hud-bg);
+  backdrop-filter: blur(22px) saturate(118%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.045),
+    inset 0 0 0 1px rgba(126, 187, 228, 0.03),
+    0 22px 44px var(--hud-shadow);
+}
+
+.sceneHost::before,
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(135deg, rgba(128, 187, 219, 0.06), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 24%);
+}
+
+.sceneHost {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+  position: relative;
+  overscroll-behavior: none;
+}
+
+.commandLayout {
+  height: calc(100vh - 28px);
+  display: grid;
+  grid-template-columns: 292px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.sidebarBrand {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px;
+  min-height: 132px;
+}
+
+.sidebarTabs {
+  display: none;
+}
+
+.sidebarPanel {
+  display: block;
+  min-height: 0;
+  flex: 1 1 0;
+  overflow: hidden;
+}
+
+.displayStage {
+  position: relative;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--hud-line);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top left, rgba(20, 57, 84, 0.28), transparent 33%),
+    linear-gradient(145deg, #050b11 0%, #09131c 42%, #0d1822 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.035),
+    inset 0 0 0 1px rgba(122, 182, 219, 0.04),
+    0 26px 54px rgba(0, 0, 0, 0.38);
+}
+
+.displayStage:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  min-height: 100vh;
+  max-width: none;
+  border: 0;
+  border-radius: 0;
+  margin: 0;
+  background:
+    radial-gradient(circle at top left, rgba(20, 64, 104, 0.55), transparent 35%),
+    linear-gradient(135deg, #07111c 0%, #0c1d2e 42%, #13283d 100%);
+}
+
+.displayStage:fullscreen .stageCanvasWrap {
+  inset: 0;
+}
+
+.stageHeader {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.stageActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.environmentHeaderToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)),
+    var(--hud-bg-strong);
+  border: 1px solid var(--hud-line);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.035),
+    0 12px 24px rgba(0, 0, 0, 0.2);
+}
+
+.environmentHeaderButton {
+  min-height: 26px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.52rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.activeEnvironmentHeaderButton {
+  background: linear-gradient(180deg, rgba(103, 165, 201, 0.26), rgba(103, 165, 201, 0.08));
+  border-color: rgba(154, 214, 247, 0.22);
+  color: var(--hud-accent-strong);
+}
+
+.appBrandBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 8px 14px 8px 10px;
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)),
+    var(--hud-bg-strong);
+  border: 1px solid var(--hud-line);
+  color: #ecf4fb;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 14px 28px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(18px);
+}
+
+.brandBadgeMark {
+  width: 30px;
+  height: 30px;
+  border-radius: 11px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.stageBrandText {
+  display: flex;
+  align-items: center;
+}
+
+.stageBrandText strong {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--hud-accent-strong);
+}
+
+.stageCanvasWrap {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.displayStage:fullscreen .sceneHost {
+  min-height: 100vh;
+}
+
+.displayStage:fullscreen .stageHeader {
+  top: 18px;
+  right: 18px;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 13px;
+  background: linear-gradient(180deg, rgba(64, 119, 157, 0.18), rgba(64, 119, 157, 0.05));
+  border: 1px solid rgba(121, 182, 216, 0.18);
+  color: var(--hud-accent);
+  text-transform: uppercase;
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.stageButton {
+  min-height: 36px;
+  padding: 8px 12px;
+  font-size: 0.72rem;
+}
+
+.sceneOverlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  color: #ffb6a7;
+  background: rgba(7, 17, 28, 0.72);
+  font-weight: 600;
+  text-align: center;
+}
+
+.cameraControls {
+  position: absolute;
+  right: 16px;
+  top: 74px;
+  z-index: 3;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  max-width: 248px;
+  justify-content: flex-end;
+}
+
+.fullscreenCameraControls {
+  top: 74px;
+  right: 16px;
+  max-width: none;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.cameraIconButton {
+  width: 42px;
+  min-width: 42px;
+  min-height: 42px;
+  padding: 0;
+  border-radius: 14px;
+  display: inline-grid;
+  place-items: center;
+}
+
+.cameraIconSvg {
+  width: 18px;
+  height: 18px;
+}
+
+.cameraMenuCard {
+  display: grid;
+  gap: 6px;
+  width: 148px;
+  padding: 8px;
+  border-radius: 16px;
+  border: 1px solid var(--hud-line);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)),
+    var(--hud-bg-strong);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 16px 28px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(18px);
+}
+
+.cameraPresetButton {
+  min-height: 33px;
+  padding: 6px 11px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0)), var(--hud-bg-strong);
+  border: 1px solid var(--hud-line);
+  color: #d9f1ff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 22px rgba(0, 0, 0, 0.22);
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.activeCameraPreset {
+  background: linear-gradient(135deg, rgba(57, 121, 168, 0.4), rgba(22, 73, 112, 0.38));
+  border-color: rgba(146, 214, 247, 0.26);
+  color: #f1fbff;
+}
+
+.cameraResetButton {
+  background: rgba(10, 23, 36, 0.92);
+  border-color: rgba(170, 204, 228, 0.22);
+}
+
+.displayStage:fullscreen .cameraControls {
+  top: 74px;
+  right: 18px;
+}
+
+.panel {
+  padding: 14px;
+}
+
+.brandMark {
+  width: 78px;
+  height: 78px;
+  flex: 0 0 auto;
+  border-radius: 20px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.24);
+}
+
+.brandCopy {
+  min-width: 0;
+}
+
+.brandCopy h1 {
+  margin: 0;
+  font-size: 1.18rem;
+  line-height: 1.02;
+  letter-spacing: 0.03em;
+}
+
+.brandNote {
+  margin: 7px 0 0;
+  color: var(--hud-text-dim);
+  font-size: 0.69rem;
+  line-height: 1.48;
+  max-width: 19rem;
+}
+
+.brandMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.brandChip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(143, 201, 233, 0.16);
+  background: rgba(87, 145, 180, 0.12);
+  color: var(--hud-accent-strong);
+  font-size: 0.53rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+
+.brandChipMuted {
+  color: var(--hud-text-soft);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.panel h2 {
+  margin: 0 0 6px;
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--hud-accent);
+  font-weight: 600;
+}
+
+.panelTopline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.panelTag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(117, 172, 204, 0.14);
+  background: rgba(79, 122, 149, 0.12);
+  color: var(--hud-text-soft);
+  font-size: 0.48rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.panel label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 0.92rem;
+}
+
+.buttonRow {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+button {
+  border: 1px solid rgba(192, 143, 95, 0.16);
+  border-radius: 13px;
+  padding: 8px 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0)),
+    linear-gradient(135deg, #9d633f, #d6a266);
+  color: #081018;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 12px 20px rgba(0, 0, 0, 0.2);
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+button.ghost {
+  border-color: var(--hud-line);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0)),
+    rgba(86, 115, 138, 0.16);
+  color: #ecf4fb;
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 14px 22px rgba(0, 0, 0, 0.24);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow:
+    inset 0 2px 0 rgba(0, 0, 0, 0.08),
+    0 8px 14px rgba(0, 0, 0, 0.22);
+}
+
+.sidebarTab {
+  min-width: 0;
+  padding: 7px 10px;
+  font-size: 0.68rem;
+}
+
+.activeTab {
+  background: linear-gradient(135deg, #ec6a4d, #ffb25c);
+  color: #07111c;
+}
+
+.dangerButton {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0)),
+    linear-gradient(135deg, #925252, #bf7a4e);
+  color: #0a121a;
+}
+
+.extremeButton {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0)),
+    linear-gradient(135deg, #4d8ea9, #7ca694);
+  color: #08131f;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.compactPanel {
+  padding: 12px;
+  max-width: 100%;
+}
+
+.controlPanel,
+.telemetry {
+  min-height: 0;
+  height: 100%;
+}
+
+.controlPanel {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 8px;
+}
+
+.telemetry {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.panelNote {
+  margin: 0 0 10px;
+  color: var(--hud-text-dim);
+  font-size: 0.61rem;
+  line-height: 1.48;
+}
+
+.controlPanel input[type="range"] {
+  width: 100%;
+}
+
+.countInput {
+  width: 100%;
+  border: 1px solid var(--hud-line);
+  border-radius: 13px;
+  background: rgba(8, 18, 28, 0.86);
+  color: #ecf4fb;
+  padding: 10px 11px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.controlPanel h2,
+.telemetry h2 {
+  font-size: 0.72rem;
+  margin-bottom: 0;
+}
+
+.controlPanel span {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
+  color: var(--hud-text-soft);
+}
+
+.controlSection {
+  margin-bottom: 10px;
+  padding: 10px 10px 11px;
+  border-radius: 15px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0)),
+    rgba(8, 17, 26, 0.36);
+  border: 1px solid rgba(117, 169, 202, 0.08);
+}
+
+.sectionLabel {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--hud-accent);
+  font-size: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+}
+
+.controlPanel label {
+  margin-bottom: 9px;
+  gap: 4px;
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--hud-accent);
+}
+
+.controlPanel button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 7px 10px;
+  font-size: 0.76rem;
+}
+
+.controlPanel .buttonRow {
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.threatModes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
+  margin-bottom: 0;
+}
+
+.modeButton {
+  min-width: 0;
+  padding: 8px 7px;
+  font-size: 0.58rem;
+}
+
+.environmentToggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.presetLabel {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--hud-accent);
+  font-size: 0.54rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+
+.presetGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.presetButton {
+  min-width: 0;
+  padding: 8px 8px;
+  font-size: 0.56rem;
+  border-radius: 11px;
+}
+
+.telemetry dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 8px;
+  margin: 0;
+}
+
+.telemetry div {
+  display: grid;
+  gap: 4px;
+  padding: 8px 8px 9px;
+  border-radius: 13px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0)),
+    rgba(8, 18, 28, 0.42);
+  border: 1px solid rgba(134, 196, 232, 0.08);
+}
+
+.telemetry dt {
+  color: var(--hud-text-dim);
+  font-size: 0.46rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+
+.telemetry dd {
+  margin: 0;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.76rem;
+  line-height: 1.22;
+  color: var(--hud-accent-strong);
+}
+
+.telemetryWide {
+  grid-column: 1 / -1;
+}
+
+.resultsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.resultTile {
+  display: grid;
+  gap: 5px;
+  padding: 9px 10px;
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0)),
+    linear-gradient(180deg, rgba(19, 40, 54, 0.82), rgba(8, 20, 30, 0.94));
+  border: 1px solid rgba(103, 171, 214, 0.14);
+}
+
+.resultTile span {
+  color: var(--hud-text-dim);
+  font-size: 0.48rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+
+.resultTile strong {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--hud-accent-strong);
+}
+
+.resultWide {
+  grid-column: 1 / -1;
+}
+
+.resultsOverlay {
+  position: absolute;
+  top: 74px;
+  left: 16px;
+  z-index: 3;
+  width: 188px;
+}
+
+.resultsOverlay .resultsPanel {
+  padding: 10px;
+  border-radius: 18px;
+  background: var(--hud-bg-strong);
+  border-color: rgba(92, 194, 255, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 0 0 1px rgba(92, 194, 255, 0.06),
+    0 14px 28px rgba(0, 0, 0, 0.28);
+}
+
+.displayStage:fullscreen .resultsOverlay {
+  top: 64px;
+  left: 14px;
+  width: 110px;
+}
+
+.displayStage:fullscreen .resultsOverlay .resultsPanel {
+  padding: 6px;
+  opacity: 0.88;
+}
+
+.error {
+  margin: 0;
+  color: #ffb6a7;
+}
+
+.sidebarStatus {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: auto;
+  flex: 0 0 auto;
+}
+
+.footerLine {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 11px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0)), var(--hud-bg);
+  border: 1px solid var(--hud-line);
+  backdrop-filter: blur(18px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 14px 30px rgba(0, 0, 0, 0.28);
+}
+
+.footerLine span {
+  color: var(--hud-text-dim);
+  text-transform: uppercase;
+  font-size: 0.54rem;
+  letter-spacing: 0.18em;
+}
+
+.footerLine strong {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--hud-accent-strong);
+}
+
+.sidebarStatus .error {
+  padding: 6px 8px;
+  border-radius: 12px;
+  background: rgba(52, 11, 11, 0.72);
+  border: 1px solid rgba(255, 182, 167, 0.18);
+}
+
+.fullscreenActionDock {
+  position: absolute;
+  left: 18px;
+  bottom: 18px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(520px, calc(100% - 36px));
+}
+
+.fullscreenActionToggle {
+  align-self: flex-start;
+  min-height: 32px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0)), var(--hud-bg-strong);
+  border: 1px solid var(--hud-line);
+  color: #d9f1ff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 10px 24px rgba(0, 0, 0, 0.22);
+  font-size: 0.64rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.fullscreenActionPanel {
+  display: flex;
+}
+
+.fullscreenControlCard {
+  width: min(286px, calc(100vw - 44px));
+  display: grid;
+  gap: 7px;
+  padding: 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(120, 180, 215, 0.16);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0)),
+    rgba(5, 13, 20, 0.72);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 20px 36px rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(22px);
+}
+
+.fullscreenControlSection,
+.fullscreenPresetCard {
+  padding: 7px;
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0)),
+    rgba(10, 20, 29, 0.42);
+  border: 1px solid rgba(124, 176, 209, 0.08);
+}
+
+.fullscreenSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  margin-bottom: 5px;
+}
+
+.fullscreenSectionTitle {
+  display: block;
+  color: var(--hud-accent);
+  font-size: 0.5rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.fullscreenExpandButton {
+  width: 26px;
+  min-width: 26px;
+  min-height: 26px;
+  padding: 0;
+  border-radius: 9px;
+  display: inline-grid;
+  place-items: center;
+}
+
+.fullscreenExpandIcon {
+  width: 15px;
+  height: 15px;
+  transition: transform 140ms ease;
+}
+
+.fullscreenExpandIcon.expanded {
+  transform: rotate(180deg);
+}
+
+.fullscreenThreatSummary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 1px;
+}
+
+.fullscreenThreatSummary span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(121, 173, 205, 0.12);
+  background: rgba(66, 100, 124, 0.16);
+  color: var(--hud-accent-strong);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.52rem;
+}
+
+.fullscreenRangeField {
+  display: grid;
+  gap: 3px;
+  margin-bottom: 6px;
+  color: var(--hud-accent);
+  font-size: 0.5rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.fullscreenRangeField:last-child {
+  margin-bottom: 0;
+}
+
+.fullscreenRangeField strong {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.63rem;
+  color: var(--hud-accent-strong);
+}
+
+.fullscreenCountInput {
+  margin-top: 2px;
+}
+
+.fullscreenPrimaryActions {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 5px;
+}
+
+.fullscreenPrimaryActions button {
+  min-height: 31px;
+  font-size: 0.57rem;
+  box-shadow: 0 12px 22px rgba(0, 0, 0, 0.22);
+}
+
+.fullscreenLaunchButton {
+  grid-row: span 2;
+  font-size: 0.63rem;
+}
+
+.fullscreenResetButton {
+  width: 100%;
+  min-height: 33px;
+  margin-top: 5px;
+  border-color: rgba(181, 107, 102, 0.28);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0)),
+    linear-gradient(135deg, #8b4041, #bf6258);
+  color: #fff2f0;
+  font-size: 0.6rem;
+}
+
+.fullscreenPresetGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.fullscreenPresetGrid button {
+  min-height: 28px;
+  font-size: 0.53rem;
+}
+
+.displayStage:fullscreen .fullscreenActionDock {
+  left: 20px;
+  bottom: 20px;
+}
+
+@media (max-width: 960px) {
+  .appShell {
+    padding: 12px;
+  }
+
+  .commandLayout {
+    grid-template-columns: 1fr;
+    height: calc(100vh - 24px);
+  }
+
+  .sidebar {
+    order: 2;
+    height: auto;
+    overflow: visible;
+  }
+
+  .sidebarTabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .sidebarPanel {
+    display: none;
+    min-height: auto;
+    flex: none;
+    overflow: visible;
+  }
+
+  .sidebarPanel.activePanel {
+    display: block;
+  }
+
+  .controlPanel {
+    overflow-y: visible;
+    padding-right: 10px;
+  }
+
+  .displayStage {
+    order: 1;
+    min-height: 0;
+    height: 58vh;
+  }
+
+  .compactPanel {
+    max-width: none;
+  }
+
+  .stageHeader {
+    left: 12px;
+    top: 12px;
+    right: 12px;
+  }
+
+  .fullscreenActionDock {
+    left: 12px;
+    bottom: 12px;
+    max-width: calc(100vw - 24px);
+  }
+
+  .resultsOverlay {
+    top: 68px;
+    left: 12px;
+    width: 168px;
+  }
+
+  .footerLine {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .sidebarBrand {
+    padding: 10px;
+  }
+
+  .brandMark {
+    width: 60px;
+    height: 60px;
+  }
+
+  .brandCopy h1 {
+    font-size: 1rem;
+  }
+
+  .brandNote {
+    font-size: 0.68rem;
+  }
+
+}
