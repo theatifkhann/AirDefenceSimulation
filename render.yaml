@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: air-defense-sim
+    runtime: docker
+    plan: starter
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: AIR_DEF_APP_ENV
+        value: production
+      - key: AIR_DEF_SERVE_FRONTEND
+        value: "1"
+      - key: AIR_DEF_FRONTEND_DIST
+        value: /app/frontend/dist
