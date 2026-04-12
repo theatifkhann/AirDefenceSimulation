@@ -2,7 +2,7 @@ services:
   - type: web
     name: air-defense-sim
     runtime: docker
-    plan: starter
+    plan: free
     region: oregon
     dockerfilePath: ./Dockerfile
     dockerContext: .
