@@ -45,12 +45,17 @@ let sharedAudioUnlockBound = false;
 const activeMissileLaunchSources = new Set<{
   source: AudioBufferSourceNode;
   gainNode: GainNode;
+  nominalGain: number;
 }>();
 const COLLISION_BLAST_AUDIO_PATH = "/audio/collision-blast.m4a";
 const COLLISION_BLAST_AUDIO_OFFSET_SECONDS = 0.12;
 const MISSILE_LAUNCH_AUDIO_PATH = "/audio/missile-launch.m4a";
 const HYPERSONIC_MISSILE_LAUNCH_AUDIO_PATH = "/audio/hypersonic-missile-launch.webm";
 const MISSILE_LAUNCH_DUCK_SECONDS = 0.16;
+const COLLISION_BLAST_COOLDOWN_MS = 180;
+const MAX_DEFERRED_AUDIO_LATENCY_MS = 140;
+let lastCollisionBlastStartedAtMs = -Infinity;
+let launchAudioEpoch = 0;
 type EnvironmentMode = "day" | "night";
 
 const ENVIRONMENT_PRESETS = {
@@ -314,6 +319,7 @@ function warmHypersonicMissileLaunchAudio() {
 }
 
 function stopActiveMissileLaunchSounds() {
+  launchAudioEpoch += 1;
   activeMissileLaunchSources.forEach(({ source, gainNode }) => {
     try {
       gainNode.gain.cancelScheduledValues(0);
@@ -327,13 +333,23 @@ function stopActiveMissileLaunchSounds() {
 }
 
 function playCollisionBlastSoundNow(context: AudioContext, buffer: AudioBuffer) {
+  const blastStartedAtMs = performance.now();
+  if (blastStartedAtMs - lastCollisionBlastStartedAtMs < COLLISION_BLAST_COOLDOWN_MS) {
+    return;
+  }
+  lastCollisionBlastStartedAtMs = blastStartedAtMs;
+  launchAudioEpoch += 1;
   const duckAt = context.currentTime;
-  activeMissileLaunchSources.forEach(({ source, gainNode }) => {
+  activeMissileLaunchSources.forEach(({ source, gainNode, nominalGain }) => {
     gainNode.gain.cancelScheduledValues(duckAt);
     gainNode.gain.setValueAtTime(gainNode.gain.value, duckAt);
+    gainNode.gain.linearRampToValueAtTime(
+      Math.max(0.04, nominalGain * 0.18),
+      duckAt + MISSILE_LAUNCH_DUCK_SECONDS * 0.25,
+    );
     gainNode.gain.linearRampToValueAtTime(0.0001, duckAt + MISSILE_LAUNCH_DUCK_SECONDS);
     try {
-      source.stop(duckAt + MISSILE_LAUNCH_DUCK_SECONDS + 0.01);
+      source.stop(duckAt + MISSILE_LAUNCH_DUCK_SECONDS + 0.02);
     } catch {
       // Source may already be ending; stopping is best-effort only.
     }
@@ -367,9 +383,14 @@ function playCollisionBlastSound() {
   }
 
   if (sharedCollisionBlastAudioPromise) {
+    const requestedAtMs = performance.now();
     void sharedCollisionBlastAudioPromise.then((buffer) => {
       const readyContext = ensureSharedAudioRunning();
-      if (!readyContext || !buffer) {
+      if (
+        !readyContext ||
+        !buffer ||
+        performance.now() - requestedAtMs > MAX_DEFERRED_AUDIO_LATENCY_MS
+      ) {
         return;
       }
       playCollisionBlastSoundNow(readyContext, buffer);
@@ -385,7 +406,8 @@ function playMissileLaunchSoundNow(
 ) {
   const source = context.createBufferSource();
   const gainNode = context.createGain();
-  gainNode.gain.value = isHypersonic ? 0.78 : kind === "interceptor" ? 0.52 : 0.68;
+  const nominalGain = isHypersonic ? 0.78 : kind === "interceptor" ? 0.52 : 0.68;
+  gainNode.gain.value = nominalGain;
   source.buffer = buffer;
   source.playbackRate.value =
     isHypersonic
@@ -395,7 +417,7 @@ function playMissileLaunchSoundNow(
         : MathUtils.randFloat(0.96, 1.04);
   source.connect(gainNode);
   gainNode.connect(context.destination);
-  const activeLaunchSource = { source, gainNode };
+  const activeLaunchSource = { source, gainNode, nominalGain };
   activeMissileLaunchSources.add(activeLaunchSource);
   source.onended = () => {
     activeMissileLaunchSources.delete(activeLaunchSource);
@@ -428,19 +450,26 @@ function playMissileLaunchSound({
     return;
   }
 
+  const requestedEpoch = launchAudioEpoch;
   const pendingPromise =
     isHypersonic && !hypersonicMissileLaunchAudioUnavailable
       ? sharedHypersonicMissileLaunchAudioPromise ?? sharedMissileLaunchAudioPromise
       : sharedMissileLaunchAudioPromise;
 
   if (pendingPromise) {
+    const requestedAtMs = performance.now();
     void pendingPromise.then(() => {
       const readyContext = ensureSharedAudioRunning();
       const readyBuffer =
         isHypersonic && sharedHypersonicMissileLaunchBuffer
           ? sharedHypersonicMissileLaunchBuffer
           : sharedMissileLaunchBuffer;
-      if (!readyContext || !readyBuffer) {
+      if (
+        !readyContext ||
+        !readyBuffer ||
+        requestedEpoch !== launchAudioEpoch ||
+        performance.now() - requestedAtMs > MAX_DEFERRED_AUDIO_LATENCY_MS
+      ) {
         return;
       }
       playMissileLaunchSoundNow(readyContext, readyBuffer, kind, isHypersonic);
