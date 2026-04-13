@@ -37,40 +37,80 @@ export default function App() {
     "telemetry",
   );
   const tacticalStageRef = useRef<HTMLDivElement | null>(null);
+  const latestStateTimeRef = useRef(0);
+  const pollInFlightRef = useRef(false);
+
+  function applySimulationState(next: SimulationState, source: "bootstrap" | "poll" | "action") {
+    if (
+      source !== "action" &&
+      next.phase !== "idle" &&
+      next.time < latestStateTimeRef.current
+    ) {
+      return;
+    }
+
+    latestStateTimeRef.current = next.time;
+    setState(next);
+    setError(null);
+  }
 
   useEffect(() => {
-    let mounted = true;
+    let cancelled = false;
+    let timer: number | null = null;
+
+    const scheduleNextPoll = () => {
+      if (cancelled) {
+        return;
+      }
+      timer = window.setTimeout(runPoll, 50);
+    };
+
+    const runPoll = async () => {
+      if (cancelled) {
+        return;
+      }
+
+      if (pollInFlightRef.current) {
+        scheduleNextPoll();
+        return;
+      }
+
+      pollInFlightRef.current = true;
+      try {
+        const next = await stepSimulation(1);
+        if (!cancelled) {
+          applySimulationState(next, "poll");
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Unknown error");
+        }
+      } finally {
+        pollInFlightRef.current = false;
+        scheduleNextPoll();
+      }
+    };
 
     void getState()
       .then((next) => {
-        if (mounted) {
-          setState(next);
+        if (!cancelled) {
+          applySimulationState(next, "bootstrap");
         }
       })
       .catch((err: Error) => {
-        if (mounted) {
+        if (!cancelled) {
           setError(err.message);
         }
+      })
+      .finally(() => {
+        scheduleNextPoll();
       });
 
-    const timer = window.setInterval(() => {
-      void stepSimulation(1)
-        .then((next) => {
-          if (mounted) {
-            setState(next);
-            setError(null);
-          }
-        })
-        .catch((err: Error) => {
-          if (mounted) {
-            setError(err.message);
-          }
-        });
-    }, 50);
-
     return () => {
-      mounted = false;
-      window.clearInterval(timer);
+      cancelled = true;
+      if (timer != null) {
+        window.clearTimeout(timer);
+      }
     };
   }, []);
 
@@ -97,8 +137,7 @@ export default function App() {
     setLoading(true);
     try {
       const next = await action();
-      setState(next);
-      setError(null);
+      applySimulationState(next, "action");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -124,8 +163,7 @@ export default function App() {
       }
 
       if (nextState) {
-        setState(nextState);
-        setError(null);
+        applySimulationState(nextState, "action");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -174,8 +212,7 @@ export default function App() {
         }
       }
       if (nextState) {
-        setState(nextState);
-        setError(null);
+        applySimulationState(nextState, "action");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
