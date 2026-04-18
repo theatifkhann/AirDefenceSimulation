@@ -1294,6 +1294,8 @@ function ApacheTargetModel({
   const hover = destroyed ? 0 : Math.sin(time * 1.6 + point.x * 0.03) * 1.3;
   const yaw = velocity.x >= 0 ? -Math.PI / 2 : Math.PI / 2;
   const bank = destroyed ? -0.24 : MathUtils.clamp(-velocity.x * 0.012, -0.14, 0.14);
+  const groupRef = useRef<Group | null>(null);
+  const initializedRef = useRef(false);
 
   const assetTransform = useMemo(() => {
     const bounds = new Box3().setFromObject(asset);
@@ -1320,8 +1322,30 @@ function ApacheTargetModel({
     });
   }, [asset]);
 
+  useFrame(() => {
+    const group = groupRef.current;
+    if (!group) {
+      return;
+    }
+
+    const targetY = world.y + hover;
+    if (!initializedRef.current) {
+      group.position.set(world.x, targetY, world.z);
+      group.rotation.set(0, yaw, bank);
+      initializedRef.current = true;
+      return;
+    }
+
+    group.position.x = MathUtils.lerp(group.position.x, world.x, 0.18);
+    group.position.y = MathUtils.lerp(group.position.y, targetY, 0.18);
+    group.position.z = MathUtils.lerp(group.position.z, world.z, 0.18);
+    group.rotation.y = MathUtils.lerp(group.rotation.y, yaw, 0.16);
+    group.rotation.z = MathUtils.lerp(group.rotation.z, bank, 0.16);
+  });
+
   return (
     <group
+      ref={groupRef}
       position={[world.x, world.y + hover, world.z]}
       rotation={[0, yaw, bank]}
       scale={destroyed ? assetTransform.scale * 0.96 : assetTransform.scale}
@@ -1464,6 +1488,36 @@ function ProjectileModel({
     });
   }, [asset]);
 
+  const groupRef = useRef<Group | null>(null);
+  const initializedRef = useRef(false);
+
+  useFrame(() => {
+    if (!point) {
+      initializedRef.current = false;
+      return;
+    }
+
+    const group = groupRef.current;
+    if (!group) {
+      return;
+    }
+
+    const world = toWorld(point, laneZ);
+    const flightAngle = velocity ? Math.atan2(velocity.y, velocity.x) : 0;
+
+    if (!initializedRef.current) {
+      group.position.set(world.x, world.y, world.z);
+      group.rotation.set(0, 0, flightAngle);
+      initializedRef.current = true;
+      return;
+    }
+
+    group.position.x = MathUtils.lerp(group.position.x, world.x, 0.24);
+    group.position.y = MathUtils.lerp(group.position.y, world.y, 0.24);
+    group.position.z = MathUtils.lerp(group.position.z, world.z, 0.24);
+    group.rotation.z = MathUtils.lerp(group.rotation.z, flightAngle, 0.22);
+  });
+
   if (!point) {
     return null;
   }
@@ -1472,7 +1526,11 @@ function ProjectileModel({
   const flightAngle = velocity ? Math.atan2(velocity.y, velocity.x) : 0;
 
   return (
-    <group position={[world.x, world.y, world.z]} rotation={[0, 0, flightAngle]}>
+    <group
+      ref={groupRef}
+      position={[world.x, world.y, world.z]}
+      rotation={[0, 0, flightAngle]}
+    >
       <group scale={assetTransform.scale * scale}>
         <group rotation={assetTransform.alignmentRotation}>
           <group position={assetTransform.offset}>
@@ -1495,6 +1553,36 @@ function ProjectileFallback({
   laneZ,
   scale = 1,
 }: ProjectileProps) {
+  const groupRef = useRef<Group | null>(null);
+  const initializedRef = useRef(false);
+
+  useFrame(() => {
+    if (!point) {
+      initializedRef.current = false;
+      return;
+    }
+
+    const group = groupRef.current;
+    if (!group) {
+      return;
+    }
+
+    const world = toWorld(point, laneZ);
+    const flightAngle = velocity ? Math.atan2(velocity.y, velocity.x) : 0;
+
+    if (!initializedRef.current) {
+      group.position.set(world.x, world.y, world.z);
+      group.rotation.set(0, 0, flightAngle);
+      initializedRef.current = true;
+      return;
+    }
+
+    group.position.x = MathUtils.lerp(group.position.x, world.x, 0.24);
+    group.position.y = MathUtils.lerp(group.position.y, world.y, 0.24);
+    group.position.z = MathUtils.lerp(group.position.z, world.z, 0.24);
+    group.rotation.z = MathUtils.lerp(group.rotation.z, flightAngle, 0.22);
+  });
+
   if (!point) {
     return null;
   }
@@ -1504,7 +1592,12 @@ function ProjectileFallback({
   const accentColor = color;
 
   return (
-    <group position={[world.x, world.y, world.z]} rotation={[0, 0, flightAngle]} scale={scale}>
+    <group
+      ref={groupRef}
+      position={[world.x, world.y, world.z]}
+      rotation={[0, 0, flightAngle]}
+      scale={scale}
+    >
       <mesh castShadow position={[4.1, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
         <coneGeometry args={[1.16, 4.8, 24]} />
         <meshStandardMaterial color="#f1f3f6" roughness={0.28} metalness={0.34} />

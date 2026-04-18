@@ -13,6 +13,8 @@ import {
 import type { SimulationState } from "./types";
 
 const BATCH_LAUNCH_DELAY_MS = 500;
+const SIM_STEP_INTERVAL_MS = 50;
+const MAX_POLL_STEPS_PER_TICK = 8;
 const FAST_THREAT = { speed: 95, angle: 34 };
 const SUPER_THREAT = { speed: 135, angle: 28 };
 const HYPERSONIC_THREAT = { speed: 220, angle: 18 };
@@ -39,6 +41,7 @@ export default function App() {
   const tacticalStageRef = useRef<HTMLDivElement | null>(null);
   const latestStateTimeRef = useRef(0);
   const pollInFlightRef = useRef(false);
+  const lastPollAtRef = useRef<number | null>(null);
 
   function applySimulationState(next: SimulationState, source: "bootstrap" | "poll" | "action") {
     if (
@@ -76,9 +79,18 @@ export default function App() {
       }
 
       pollInFlightRef.current = true;
+      const pollStartedAt = performance.now();
+      const elapsedMs =
+        lastPollAtRef.current == null ? SIM_STEP_INTERVAL_MS : pollStartedAt - lastPollAtRef.current;
+      const steps = Math.max(
+        1,
+        Math.min(MAX_POLL_STEPS_PER_TICK, Math.round(elapsedMs / SIM_STEP_INTERVAL_MS)),
+      );
+
       try {
-        const next = await stepSimulation(1);
+        const next = await stepSimulation(steps);
         if (!cancelled) {
+          lastPollAtRef.current = pollStartedAt;
           applySimulationState(next, "poll");
         }
       } catch (err) {
