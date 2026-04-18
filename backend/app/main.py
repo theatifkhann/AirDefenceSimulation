@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from threading import Lock
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
@@ -24,6 +25,7 @@ if settings.cors_allowed_origins:
     )
 
 app.state.engine = SimulationEngine(config=SimulationConfig())
+app.state.engine_lock = Lock()
 
 
 def _resolve_static_file(frontend_dist: Path, requested_path: str) -> Path | None:
@@ -40,34 +42,43 @@ def health() -> dict[str, str]:
 
 @app.get("/state", response_model=SimulationState)
 def get_state() -> SimulationState:
-    return app.state.engine.snapshot()
+    with app.state.engine_lock:
+        app.state.engine.sync_to_wall_time()
+        return app.state.engine.snapshot()
 
 
 @app.post("/scenario/launch", response_model=SimulationState)
 def launch_threat(request: LaunchRequest) -> SimulationState:
-    app.state.engine.launch_threat(
-        speed=request.speed,
-        angle_deg=request.angle_deg,
-        target_id=request.target_id,
-    )
-    return app.state.engine.snapshot()
+    with app.state.engine_lock:
+        app.state.engine.sync_to_wall_time()
+        app.state.engine.launch_threat(
+            speed=request.speed,
+            angle_deg=request.angle_deg,
+            target_id=request.target_id,
+        )
+        return app.state.engine.snapshot()
 
 
 @app.post("/scenario/strike-all", response_model=SimulationState)
 def strike_all_targets() -> SimulationState:
-    app.state.engine.launch_dual_target_strike()
-    return app.state.engine.snapshot()
+    with app.state.engine_lock:
+        app.state.engine.sync_to_wall_time()
+        app.state.engine.launch_dual_target_strike()
+        return app.state.engine.snapshot()
 
 
 @app.post("/simulation/step", response_model=SimulationState)
 def step_simulation(steps: int = 1) -> SimulationState:
-    return app.state.engine.step(steps=steps)
+    with app.state.engine_lock:
+        app.state.engine.sync_to_wall_time()
+        return app.state.engine.step(steps=steps)
 
 
 @app.post("/simulation/reset", response_model=SimulationState)
 def reset_simulation() -> SimulationState:
-    app.state.engine.reset()
-    return app.state.engine.snapshot()
+    with app.state.engine_lock:
+        app.state.engine.reset()
+        return app.state.engine.snapshot()
 
 
 if settings.serve_frontend:

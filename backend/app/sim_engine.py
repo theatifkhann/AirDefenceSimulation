@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import deque
 from dataclasses import dataclass, field
+from time import monotonic
 
 import numpy as np
 
@@ -73,6 +74,7 @@ class SimulationEngine:
 
     def reset(self) -> None:
         self.time = 0.0
+        self.last_wall_time = monotonic()
         self.status = "Ready. Launch one or more threats."
         self.phase = "idle"
         self.threats: list[ThreatRecord] = []
@@ -102,6 +104,16 @@ class SimulationEngine:
         self.site_last_launch_time = {
             site.id: -1e9 for site in self.config.interceptor_sites
         }
+
+    def sync_to_wall_time(self, max_catchup_seconds: float = 0.5) -> None:
+        now = monotonic()
+        elapsed = max(0.0, now - self.last_wall_time)
+        consumed = min(elapsed, max_catchup_seconds)
+        steps = int(consumed / self.config.dt)
+        remainder = consumed - steps * self.config.dt
+        self.last_wall_time = now - remainder
+        if steps > 0:
+            self.step(steps=steps)
 
     def launch_threat(
         self,
