@@ -1,0 +1,28 @@
+app = "replace-with-your-fly-app-name"
+primary_region = "bom"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  AIR_DEF_APP_ENV = "production"
+  AIR_DEF_SERVE_FRONTEND = "1"
+  AIR_DEF_FRONTEND_DIST = "/app/frontend/dist"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = false
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "15s"
+    interval = "30s"
+    timeout = "5s"
+    method = "GET"
+    path = "/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"

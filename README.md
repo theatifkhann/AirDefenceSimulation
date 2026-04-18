@@ -186,6 +186,39 @@ The Blueprint config sets:
 
 After deploy, open the generated `onrender.com` URL.
 
+### Fly.io deployment
+
+This repo also includes [fly.toml](/Users/atif/Desktop/air-def/fly.toml) for Fly.io.
+
+The Fly configuration is set up for this app's current architecture:
+
+- Docker-based deploy using the existing [Dockerfile](/Users/atif/Desktop/air-def/Dockerfile)
+- `internal_port = 8000`
+- health check on `/health`
+- primary region set to `bom` (Mumbai) for lower latency in India
+- Machines kept warm by default so the in-memory simulation is not paused by autostop
+
+Before the first deploy:
+
+1. Install `flyctl` and log in with Fly.io.
+2. Open [fly.toml](/Users/atif/Desktop/air-def/fly.toml) and replace `replace-with-your-fly-app-name` with your real Fly app name.
+3. From the repo root, run:
+
+```bash
+fly launch --no-deploy
+fly deploy
+```
+
+Useful follow-up commands:
+
+```bash
+fly status
+fly logs
+fly checks list
+```
+
+If you want to move the app closer to your users, Fly supports region placement and currently includes `bom` for Mumbai. See the official references for [regions](https://fly.io/docs/reference/regions/), [Dockerfile deploys](https://fly.io/docs/languages-and-frameworks/dockerfile/), [launch](https://fly.io/docs/flyctl/launch/), [deploy](https://fly.io/docs/flyctl/deploy/), and [fly.toml configuration](https://fly.io/docs/reference/configuration/).
+
 ### Non-Docker deployment
 
 1. Build the frontend with `npm run build` inside `frontend/`.

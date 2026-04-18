@@ -36,3 +36,4 @@ npm-debug.log*
 .tmp-export-launch*
 *.tsbuildinfo
 tmp_frames/
+.fly/
