@@ -134,6 +134,65 @@ input {
   overflow: hidden;
 }
 
+.pingCard {
+  padding: 11px 12px;
+}
+
+.pingCardBody {
+  display: grid;
+  gap: 4px;
+}
+
+.pingCardBody strong {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 1.12rem;
+  line-height: 1;
+  color: var(--hud-accent-strong);
+}
+
+.pingCardBody span {
+  color: var(--hud-text-dim);
+  font-size: 0.56rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+
+.pingBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 0.48rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.pingBadgeStable {
+  color: #dff7eb;
+  background: rgba(98, 150, 121, 0.18);
+  border-color: rgba(131, 201, 161, 0.16);
+}
+
+.pingBadgeWatch {
+  color: #f5e6c6;
+  background: rgba(159, 122, 63, 0.18);
+  border-color: rgba(212, 173, 104, 0.16);
+}
+
+.pingBadgeSlow {
+  color: #ffd0c7;
+  background: rgba(156, 77, 70, 0.18);
+  border-color: rgba(201, 114, 106, 0.16);
+}
+
+.pingBadgeOffline {
+  color: var(--hud-text-soft);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(137, 180, 209, 0.12);
+}
+
 .displayStage {
   position: relative;
   min-height: 0;

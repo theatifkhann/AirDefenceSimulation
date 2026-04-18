@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import ControlPanel from "./components/ControlPanel";
+import PingCard from "./components/PingCard";
 import ResultsPanel from "./components/ResultsPanel";
 import SimulationCanvas from "./components/SimulationCanvas";
 import TelemetryPanel from "./components/TelemetryPanel";
@@ -27,6 +28,7 @@ export default function App() {
   const [environmentMode, setEnvironmentMode] = useState<EnvironmentMode>("day");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pingMs, setPingMs] = useState<number | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isFullscreenActionMenuOpen, setIsFullscreenActionMenuOpen] = useState(false);
   const [isFullscreenThreatProfileExpanded, setIsFullscreenThreatProfileExpanded] = useState(false);
@@ -76,12 +78,15 @@ export default function App() {
 
       pollInFlightRef.current = true;
       try {
+        const startedAt = performance.now();
         const next = await getState();
         if (!cancelled) {
+          setPingMs(performance.now() - startedAt);
           applySimulationState(next, "poll");
         }
       } catch (err) {
         if (!cancelled) {
+          setPingMs(null);
           setError(err instanceof Error ? err.message : "Unknown error");
         }
       } finally {
@@ -90,20 +95,23 @@ export default function App() {
       }
     };
 
-    void getState()
-      .then((next) => {
+    void (async () => {
+      const startedAt = performance.now();
+      try {
+        const next = await getState();
         if (!cancelled) {
+          setPingMs(performance.now() - startedAt);
           applySimulationState(next, "bootstrap");
         }
-      })
-      .catch((err: Error) => {
+      } catch (err) {
         if (!cancelled) {
-          setError(err.message);
+          setPingMs(null);
+          setError(err instanceof Error ? err.message : "Unknown error");
         }
-      })
-      .finally(() => {
+      } finally {
         scheduleNextPoll();
-      });
+      }
+    })();
 
     return () => {
       cancelled = true;
@@ -262,6 +270,7 @@ export default function App() {
               </div>
             </div>
           </div>
+          <PingCard pingMs={pingMs} />
           <div className="sidebarTabs">
             <button
               className={`sidebarTab ${mobileSidebarTab === "telemetry" ? "activeTab" : "ghost"}`}
