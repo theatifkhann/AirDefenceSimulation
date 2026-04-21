@@ -55,6 +55,132 @@ input {
   overflow: hidden;
 }
 
+.coverAppShell {
+  padding: 0;
+}
+
+.coverShell {
+  position: relative;
+  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
+  background: #02050a;
+}
+
+.coverSceneLayer {
+  position: absolute;
+  inset: 0;
+}
+
+.coverSceneScrim {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 63% 52%, rgba(2, 5, 10, 0.02) 0%, rgba(2, 5, 10, 0.18) 34%, rgba(2, 5, 10, 0.84) 100%),
+    linear-gradient(90deg, rgba(2, 5, 10, 0.96) 0%, rgba(2, 5, 10, 0.84) 20%, rgba(2, 5, 10, 0.38) 43%, rgba(2, 5, 10, 0.16) 60%, rgba(2, 5, 10, 0.72) 100%),
+    linear-gradient(180deg, rgba(2, 5, 10, 0.54) 0%, rgba(2, 5, 10, 0.08) 35%, rgba(2, 5, 10, 0.5) 100%);
+  pointer-events: none;
+}
+
+.coverContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: clamp(30px, 5vw, 72px);
+  pointer-events: none;
+}
+
+.coverCopy {
+  pointer-events: auto;
+  width: min(34rem, 100%);
+  animation: coverReveal 700ms ease forwards;
+}
+
+.coverKicker {
+  margin: 0 0 18px;
+  color: rgba(234, 239, 246, 0.88);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.86rem;
+  letter-spacing: 0.18em;
+}
+
+.coverTitle {
+  margin: 0;
+  max-width: 5.6ch;
+  font-size: clamp(4rem, 9vw, 7.6rem);
+  line-height: 0.86;
+  letter-spacing: -0.05em;
+  color: #f5f7fb;
+}
+
+.coverDescription {
+  max-width: 29rem;
+  margin: 28px 0 0;
+  color: rgba(233, 238, 245, 0.88);
+  font-size: clamp(1rem, 1.6vw, 1.16rem);
+  line-height: 1.72;
+  text-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+}
+
+.coverActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 34px;
+}
+
+.coverStartButton {
+  min-height: 56px;
+  padding: 15px 24px;
+  border-radius: 18px;
+  font-size: 0.94rem;
+  letter-spacing: 0.14em;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0)),
+    linear-gradient(135deg, #fbfbfc, #dce1e8);
+  color: #07111a;
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 20px 42px rgba(0, 0, 0, 0.36);
+}
+
+.coverHeroViewport {
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: default;
+}
+
+.coverHeroViewport canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  touch-action: none;
+}
+
+.coverHeroViewport.isHovering {
+  cursor: grab;
+}
+
+.coverHeroViewport.isDragging {
+  cursor: grabbing;
+}
+
+@keyframes coverReveal {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .eyebrow {
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -1084,6 +1210,42 @@ button:disabled {
 @media (max-width: 960px) {
   .appShell {
     padding: 12px;
+  }
+
+  .coverAppShell {
+    padding: 0;
+  }
+
+  .coverShell {
+    min-height: 100vh;
+    height: 100vh;
+  }
+
+  .coverSceneScrim {
+    background:
+      radial-gradient(circle at 58% 48%, rgba(2, 5, 10, 0.02) 0%, rgba(2, 5, 10, 0.2) 28%, rgba(2, 5, 10, 0.9) 100%),
+      linear-gradient(180deg, rgba(2, 5, 10, 0.28) 0%, rgba(2, 5, 10, 0.12) 32%, rgba(2, 5, 10, 0.76) 100%),
+      linear-gradient(90deg, rgba(2, 5, 10, 0.88) 0%, rgba(2, 5, 10, 0.58) 36%, rgba(2, 5, 10, 0.18) 64%, rgba(2, 5, 10, 0.5) 100%);
+  }
+
+  .coverContent {
+    align-items: flex-start;
+    padding: 28px 22px 34px;
+  }
+
+  .coverTitle {
+    max-width: 5.8ch;
+    font-size: clamp(3.2rem, 17vw, 5.4rem);
+  }
+
+  .coverDescription {
+    margin-top: 22px;
+    max-width: 22rem;
+    line-height: 1.62;
+  }
+
+  .coverActions {
+    margin-top: 28px;
   }
 
   .commandLayout {
