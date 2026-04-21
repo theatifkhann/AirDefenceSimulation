@@ -58,6 +58,7 @@ let lastCollisionBlastStartedAtMs = -Infinity;
 let launchAudioEpoch = 0;
 type EnvironmentMode = "day" | "night";
 const MAX_CLIENT_MOTION_LOOKAHEAD_SECONDS = 0.85;
+const CLIENT_INTERCEPT_FREEZE_LOOKAHEAD_SECONDS = 1.1;
 
 function predictedSnapshotAgeSeconds(snapshotReceivedAtMs: number | null) {
   if (snapshotReceivedAtMs == null) {
@@ -82,6 +83,94 @@ function extrapolatePoint(
   return {
     x: point.x + velocity.x * secondsAhead,
     y: Math.max(0, point.y + velocity.y * secondsAhead),
+  };
+}
+
+function clampExtrapolatedPointToStop(
+  startPoint: Vector2,
+  predictedPoint: Vector2,
+  stopPoint: Vector2 | null | undefined,
+  velocity: Vector2 | null,
+): Vector2 {
+  if (!stopPoint || !velocity) {
+    return predictedPoint;
+  }
+
+  const velocityMagnitude = Math.hypot(velocity.x, velocity.y);
+  if (velocityMagnitude < 1e-6) {
+    return predictedPoint;
+  }
+
+  const directionX = velocity.x / velocityMagnitude;
+  const directionY = velocity.y / velocityMagnitude;
+  const stopDistance =
+    (stopPoint.x - startPoint.x) * directionX + (stopPoint.y - startPoint.y) * directionY;
+  const predictedDistance =
+    (predictedPoint.x - startPoint.x) * directionX +
+    (predictedPoint.y - startPoint.y) * directionY;
+
+  if (stopDistance < 0 || predictedDistance < stopDistance) {
+    return predictedPoint;
+  }
+
+  return stopPoint;
+}
+
+function predictInterceptFreezePoint(
+  interceptor: BodyState,
+  threat: BodyState,
+  interceptRadius: number,
+): Vector2 | null {
+  if (
+    !interceptor.active ||
+    interceptor.destroyed ||
+    !threat.active ||
+    threat.destroyed ||
+    !interceptor.position ||
+    !interceptor.velocity ||
+    !threat.position ||
+    !threat.velocity
+  ) {
+    return null;
+  }
+
+  const relativePositionX = threat.position.x - interceptor.position.x;
+  const relativePositionY = threat.position.y - interceptor.position.y;
+  const relativeVelocityX = threat.velocity.x - interceptor.velocity.x;
+  const relativeVelocityY = threat.velocity.y - interceptor.velocity.y;
+  const relativeSpeedSquared =
+    relativeVelocityX * relativeVelocityX + relativeVelocityY * relativeVelocityY;
+
+  let timeToClosestApproach = 0;
+  if (relativeSpeedSquared > 1e-6) {
+    timeToClosestApproach = MathUtils.clamp(
+      -(
+        relativePositionX * relativeVelocityX +
+        relativePositionY * relativeVelocityY
+      ) / relativeSpeedSquared,
+      0,
+      CLIENT_INTERCEPT_FREEZE_LOOKAHEAD_SECONDS,
+    );
+  }
+
+  const closestThreatX = threat.position.x + threat.velocity.x * timeToClosestApproach;
+  const closestThreatY = threat.position.y + threat.velocity.y * timeToClosestApproach;
+  const closestInterceptorX =
+    interceptor.position.x + interceptor.velocity.x * timeToClosestApproach;
+  const closestInterceptorY =
+    interceptor.position.y + interceptor.velocity.y * timeToClosestApproach;
+  const closestSeparation = Math.hypot(
+    closestThreatX - closestInterceptorX,
+    closestThreatY - closestInterceptorY,
+  );
+
+  if (closestSeparation > interceptRadius * 1.08) {
+    return null;
+  }
+
+  return {
+    x: (closestThreatX + closestInterceptorX) / 2,
+    y: Math.max(0, (closestThreatY + closestInterceptorY) / 2),
   };
 }
 
@@ -1475,21 +1564,27 @@ class TargetRenderBoundary extends Component<
 }
 
 type ProjectileProps = {
+  active?: boolean;
+  destroyed?: boolean;
   point: Vector2 | null;
   velocity: Vector2 | null;
   color: string;
   laneZ: number;
   modelVariant?: "phoenix" | "fateh";
   scale?: number;
+  freezePoint?: Vector2 | null;
 };
 
 function ProjectileModel({
+  active = true,
+  destroyed = false,
   point,
   velocity,
   color,
   laneZ,
   modelVariant = "phoenix",
   scale = 1,
+  freezePoint = null,
 }: ProjectileProps) {
   const modelPath =
     modelVariant === "fateh"
@@ -1556,10 +1651,17 @@ function ProjectileModel({
       return;
     }
 
-    const predictedPoint = extrapolatePoint(
+    const predictedPoint = clampExtrapolatedPointToStop(
       point,
+      extrapolatePoint(
+        point,
+        velocity,
+        active && !destroyed
+          ? predictedSnapshotAgeSeconds(snapshotReceivedAtRef.current)
+          : 0,
+      ),
+      freezePoint,
       velocity,
-      predictedSnapshotAgeSeconds(snapshotReceivedAtRef.current),
     );
     const world = toWorld(predictedPoint, laneZ);
     const flightAngle = velocity ? Math.atan2(velocity.y, velocity.x) : 0;
@@ -1606,11 +1708,14 @@ function ProjectileModel({
 }
 
 function ProjectileFallback({
+  active = true,
+  destroyed = false,
   point,
   velocity,
   color,
   laneZ,
   scale = 1,
+  freezePoint = null,
 }: ProjectileProps) {
   const groupRef = useRef<Group | null>(null);
   const initializedRef = useRef(false);
@@ -1631,10 +1736,17 @@ function ProjectileFallback({
       return;
     }
 
-    const predictedPoint = extrapolatePoint(
+    const predictedPoint = clampExtrapolatedPointToStop(
       point,
+      extrapolatePoint(
+        point,
+        velocity,
+        active && !destroyed
+          ? predictedSnapshotAgeSeconds(snapshotReceivedAtRef.current)
+          : 0,
+      ),
+      freezePoint,
       velocity,
-      predictedSnapshotAgeSeconds(snapshotReceivedAtRef.current),
     );
     const world = toWorld(predictedPoint, laneZ);
     const flightAngle = velocity ? Math.atan2(velocity.y, velocity.x) : 0;
@@ -1749,7 +1861,11 @@ class ProjectileBoundary extends Component<ProjectileProps, { hasError: boolean 
         prevProps.point?.y !== this.props.point?.y ||
         prevProps.velocity?.x !== this.props.velocity?.x ||
         prevProps.velocity?.y !== this.props.velocity?.y ||
+        prevProps.active !== this.props.active ||
+        prevProps.destroyed !== this.props.destroyed ||
         prevProps.color !== this.props.color ||
+        prevProps.freezePoint?.x !== this.props.freezePoint?.x ||
+        prevProps.freezePoint?.y !== this.props.freezePoint?.y ||
         prevProps.laneZ !== this.props.laneZ ||
         prevProps.scale !== this.props.scale)
     ) {
@@ -2184,6 +2300,61 @@ function TacticalWorld({
   const threatLaneMapRef = useRef<Map<number, number>>(new Map());
   const interceptorLaneMapRef = useRef<Map<number, number>>(new Map());
   const lastTimeRef = useRef(state.time);
+  const freezePointByThreatId = useMemo(() => {
+    const freezeMap = new Map<number, Vector2>();
+
+    state.interceptors.forEach((interceptor) => {
+      if (interceptor.assigned_target_id == null) {
+        return;
+      }
+
+      const threat = state.threats.find((item) => item.id === interceptor.assigned_target_id);
+      if (!threat || interceptor.id == null || threat.id == null) {
+        return;
+      }
+
+      const freezePoint = predictInterceptFreezePoint(
+        interceptor,
+        threat,
+        state.config.intercept_radius,
+      );
+      if (!freezePoint) {
+        return;
+      }
+
+      freezeMap.set(threat.id, freezePoint);
+    });
+
+    return freezeMap;
+  }, [state.config.intercept_radius, state.interceptors, state.threats]);
+
+  const freezePointByInterceptorId = useMemo(() => {
+    const freezeMap = new Map<number, Vector2>();
+
+    state.interceptors.forEach((interceptor) => {
+      if (interceptor.assigned_target_id == null || interceptor.id == null) {
+        return;
+      }
+
+      const threat = state.threats.find((item) => item.id === interceptor.assigned_target_id);
+      if (!threat) {
+        return;
+      }
+
+      const freezePoint = predictInterceptFreezePoint(
+        interceptor,
+        threat,
+        state.config.intercept_radius,
+      );
+      if (!freezePoint) {
+        return;
+      }
+
+      freezeMap.set(interceptor.id, freezePoint);
+    });
+
+    return freezeMap;
+  }, [state.config.intercept_radius, state.interceptors, state.threats]);
 
   useEffect(() => {
     if (state.phase === "idle" || state.time < lastTimeRef.current) {
@@ -2325,10 +2496,13 @@ function TacticalWorld({
             environmentMode={environmentMode}
           />
           <ProjectileBoundary
+            active={threat.active}
+            destroyed={threat.destroyed}
             point={threat.position}
             velocity={threat.velocity}
             color="#ff785d"
             laneZ={laneZ}
+            freezePoint={threat.id != null ? freezePointByThreatId.get(threat.id) ?? null : null}
             modelVariant={
               threat.velocity &&
               Math.hypot(threat.velocity.x, threat.velocity.y) >=
@@ -2357,10 +2531,15 @@ function TacticalWorld({
             environmentMode={environmentMode}
           />
           <ProjectileBoundary
+            active={interceptor.active}
+            destroyed={interceptor.destroyed}
             point={interceptor.position}
             velocity={interceptor.velocity}
             color="#8bffd8"
             laneZ={laneZ}
+            freezePoint={
+              interceptor.id != null ? freezePointByInterceptorId.get(interceptor.id) ?? null : null
+            }
             modelVariant={
               interceptor.interceptor_class === "hypersonic" ? "fateh" : "phoenix"
             }
