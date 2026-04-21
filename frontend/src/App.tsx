@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import CoverHero from "./components/CoverHero";
 import ControlPanel from "./components/ControlPanel";
 import PingCard from "./components/PingCard";
 import ResultsPanel from "./components/ResultsPanel";
@@ -21,6 +22,7 @@ type ScenarioPreset = "single_arc" | "saturation" | "mixed_wave" | "dual_axis";
 type EnvironmentMode = "day" | "night";
 
 export default function App() {
+  const [hasEnteredConsole, setHasEnteredConsole] = useState(false);
   const [state, setState] = useState<SimulationState | null>(null);
   const [speed, setSpeed] = useState(62);
   const [angleDeg, setAngleDeg] = useState(42);
@@ -249,6 +251,37 @@ export default function App() {
         -dynamicPanLimit,
         Math.min(dynamicPanLimit, Number((value + delta * 0.18).toFixed(2))),
       ),
+    );
+  }
+
+  if (!hasEnteredConsole) {
+    return (
+      <main className="appShell coverAppShell">
+        <section className="coverShell">
+          <div className="coverSceneLayer" aria-hidden="true">
+            <CoverHero />
+            <div className="coverSceneScrim" />
+          </div>
+          <div className="coverContent">
+            <div className="coverCopy">
+              <p className="coverKicker">Integrated Air Defense Platform</p>
+              <h1 className="coverTitle">AIR DEFENSE</h1>
+              <p className="coverDescription">
+                Track incoming threats, visualize the Fateh interceptor in 3D, and enter
+                a live command view built for rapid response.
+              </p>
+              <div className="coverActions">
+                <button
+                  className="coverStartButton"
+                  onClick={() => setHasEnteredConsole(true)}
+                >
+                  GET STARTED
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
     );
   }
 
