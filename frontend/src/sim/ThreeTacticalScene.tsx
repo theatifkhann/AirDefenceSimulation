@@ -57,6 +57,33 @@ const MAX_DEFERRED_AUDIO_LATENCY_MS = 140;
 let lastCollisionBlastStartedAtMs = -Infinity;
 let launchAudioEpoch = 0;
 type EnvironmentMode = "day" | "night";
+const MAX_CLIENT_MOTION_LOOKAHEAD_SECONDS = 0.85;
+
+function predictedSnapshotAgeSeconds(snapshotReceivedAtMs: number | null) {
+  if (snapshotReceivedAtMs == null) {
+    return 0;
+  }
+
+  return Math.min(
+    MAX_CLIENT_MOTION_LOOKAHEAD_SECONDS,
+    Math.max(0, (performance.now() - snapshotReceivedAtMs) / 1000),
+  );
+}
+
+function extrapolatePoint(
+  point: Vector2,
+  velocity: Vector2 | null,
+  secondsAhead: number,
+): Vector2 {
+  if (!velocity || secondsAhead <= 0) {
+    return point;
+  }
+
+  return {
+    x: point.x + velocity.x * secondsAhead,
+    y: Math.max(0, point.y + velocity.y * secondsAhead),
+  };
+}
 
 const ENVIRONMENT_PRESETS = {
   day: {
@@ -1141,8 +1168,17 @@ function TargetFallbackMarker({
   destroyed: boolean;
   time: number;
 }) {
-  const world = toWorld(point, laneZ);
-  const hover = destroyed ? 0 : Math.sin(time * 1.6 + point.x * 0.03) * 1.3;
+  const snapshotReceivedAtRef = useRef<number>(performance.now());
+
+  useEffect(() => {
+    snapshotReceivedAtRef.current = performance.now();
+  }, [point.x, point.y, velocity.x, velocity.y, time]);
+
+  const secondsAhead = destroyed ? 0 : predictedSnapshotAgeSeconds(snapshotReceivedAtRef.current);
+  const predictedPoint = destroyed ? point : extrapolatePoint(point, velocity, secondsAhead);
+  const world = toWorld(predictedPoint, laneZ);
+  const renderTime = time + secondsAhead;
+  const hover = destroyed ? 0 : Math.sin(renderTime * 1.6 + predictedPoint.x * 0.03) * 1.3;
   const yaw = velocity.x >= 0 ? Math.PI / 2 : -Math.PI / 2;
   const bank = destroyed ? -0.24 : MathUtils.clamp(-velocity.x * 0.015, -0.16, 0.16);
   const bodyColor = destroyed ? "#5f3530" : "#66755b";
@@ -1290,12 +1326,9 @@ function ApacheTargetModel({
 }) {
   const gltf = useLoader(GLTFLoader, "/models/apache.glb");
   const asset = gltf.scene as Group;
-  const world = toWorld(point, laneZ);
-  const hover = destroyed ? 0 : Math.sin(time * 1.6 + point.x * 0.03) * 1.3;
-  const yaw = velocity.x >= 0 ? -Math.PI / 2 : Math.PI / 2;
-  const bank = destroyed ? -0.24 : MathUtils.clamp(-velocity.x * 0.012, -0.14, 0.14);
   const groupRef = useRef<Group | null>(null);
   const initializedRef = useRef(false);
+  const snapshotReceivedAtRef = useRef<number>(performance.now());
 
   const assetTransform = useMemo(() => {
     const bounds = new Box3().setFromObject(asset);
@@ -1322,12 +1355,23 @@ function ApacheTargetModel({
     });
   }, [asset]);
 
-  useFrame(() => {
+  useEffect(() => {
+    snapshotReceivedAtRef.current = performance.now();
+  }, [point.x, point.y, velocity.x, velocity.y, laneZ, destroyed, time]);
+
+  useFrame((_, delta) => {
     const group = groupRef.current;
     if (!group) {
       return;
     }
 
+    const secondsAhead = destroyed ? 0 : predictedSnapshotAgeSeconds(snapshotReceivedAtRef.current);
+    const predictedPoint = destroyed ? point : extrapolatePoint(point, velocity, secondsAhead);
+    const world = toWorld(predictedPoint, laneZ);
+    const renderTime = time + secondsAhead;
+    const hover = destroyed ? 0 : Math.sin(renderTime * 1.6 + predictedPoint.x * 0.03) * 1.3;
+    const yaw = velocity.x >= 0 ? -Math.PI / 2 : Math.PI / 2;
+    const bank = destroyed ? -0.24 : MathUtils.clamp(-velocity.x * 0.012, -0.14, 0.14);
     const targetY = world.y + hover;
     if (!initializedRef.current) {
       group.position.set(world.x, targetY, world.z);
@@ -1336,18 +1380,23 @@ function ApacheTargetModel({
       return;
     }
 
-    group.position.x = MathUtils.lerp(group.position.x, world.x, 0.18);
-    group.position.y = MathUtils.lerp(group.position.y, targetY, 0.18);
-    group.position.z = MathUtils.lerp(group.position.z, world.z, 0.18);
-    group.rotation.y = MathUtils.lerp(group.rotation.y, yaw, 0.16);
-    group.rotation.z = MathUtils.lerp(group.rotation.z, bank, 0.16);
+    group.position.x = MathUtils.damp(group.position.x, world.x, 10, delta);
+    group.position.y = MathUtils.damp(group.position.y, targetY, 10, delta);
+    group.position.z = MathUtils.damp(group.position.z, world.z, 10, delta);
+    group.rotation.y = MathUtils.damp(group.rotation.y, yaw, 11, delta);
+    group.rotation.z = MathUtils.damp(group.rotation.z, bank, 11, delta);
   });
+
+  const initialWorld = toWorld(point, laneZ);
+  const initialHover = destroyed ? 0 : Math.sin(time * 1.6 + point.x * 0.03) * 1.3;
+  const initialYaw = velocity.x >= 0 ? -Math.PI / 2 : Math.PI / 2;
+  const initialBank = destroyed ? -0.24 : MathUtils.clamp(-velocity.x * 0.012, -0.14, 0.14);
 
   return (
     <group
       ref={groupRef}
-      position={[world.x, world.y + hover, world.z]}
-      rotation={[0, yaw, bank]}
+      position={[initialWorld.x, initialWorld.y + initialHover, initialWorld.z]}
+      rotation={[0, initialYaw, initialBank]}
       scale={destroyed ? assetTransform.scale * 0.96 : assetTransform.scale}
     >
       <group position={assetTransform.offset}>
@@ -1490,8 +1539,13 @@ function ProjectileModel({
 
   const groupRef = useRef<Group | null>(null);
   const initializedRef = useRef(false);
+  const snapshotReceivedAtRef = useRef<number>(performance.now());
 
-  useFrame(() => {
+  useEffect(() => {
+    snapshotReceivedAtRef.current = performance.now();
+  }, [point?.x, point?.y, velocity?.x, velocity?.y, laneZ]);
+
+  useFrame((_, delta) => {
     if (!point) {
       initializedRef.current = false;
       return;
@@ -1502,7 +1556,12 @@ function ProjectileModel({
       return;
     }
 
-    const world = toWorld(point, laneZ);
+    const predictedPoint = extrapolatePoint(
+      point,
+      velocity,
+      predictedSnapshotAgeSeconds(snapshotReceivedAtRef.current),
+    );
+    const world = toWorld(predictedPoint, laneZ);
     const flightAngle = velocity ? Math.atan2(velocity.y, velocity.x) : 0;
 
     if (!initializedRef.current) {
@@ -1512,10 +1571,10 @@ function ProjectileModel({
       return;
     }
 
-    group.position.x = MathUtils.lerp(group.position.x, world.x, 0.24);
-    group.position.y = MathUtils.lerp(group.position.y, world.y, 0.24);
-    group.position.z = MathUtils.lerp(group.position.z, world.z, 0.24);
-    group.rotation.z = MathUtils.lerp(group.rotation.z, flightAngle, 0.22);
+    group.position.x = MathUtils.damp(group.position.x, world.x, 12, delta);
+    group.position.y = MathUtils.damp(group.position.y, world.y, 12, delta);
+    group.position.z = MathUtils.damp(group.position.z, world.z, 12, delta);
+    group.rotation.z = MathUtils.damp(group.rotation.z, flightAngle, 12, delta);
   });
 
   if (!point) {
@@ -1555,8 +1614,13 @@ function ProjectileFallback({
 }: ProjectileProps) {
   const groupRef = useRef<Group | null>(null);
   const initializedRef = useRef(false);
+  const snapshotReceivedAtRef = useRef<number>(performance.now());
 
-  useFrame(() => {
+  useEffect(() => {
+    snapshotReceivedAtRef.current = performance.now();
+  }, [point?.x, point?.y, velocity?.x, velocity?.y, laneZ]);
+
+  useFrame((_, delta) => {
     if (!point) {
       initializedRef.current = false;
       return;
@@ -1567,7 +1631,12 @@ function ProjectileFallback({
       return;
     }
 
-    const world = toWorld(point, laneZ);
+    const predictedPoint = extrapolatePoint(
+      point,
+      velocity,
+      predictedSnapshotAgeSeconds(snapshotReceivedAtRef.current),
+    );
+    const world = toWorld(predictedPoint, laneZ);
     const flightAngle = velocity ? Math.atan2(velocity.y, velocity.x) : 0;
 
     if (!initializedRef.current) {
@@ -1577,10 +1646,10 @@ function ProjectileFallback({
       return;
     }
 
-    group.position.x = MathUtils.lerp(group.position.x, world.x, 0.24);
-    group.position.y = MathUtils.lerp(group.position.y, world.y, 0.24);
-    group.position.z = MathUtils.lerp(group.position.z, world.z, 0.24);
-    group.rotation.z = MathUtils.lerp(group.rotation.z, flightAngle, 0.22);
+    group.position.x = MathUtils.damp(group.position.x, world.x, 12, delta);
+    group.position.y = MathUtils.damp(group.position.y, world.y, 12, delta);
+    group.position.z = MathUtils.damp(group.position.z, world.z, 12, delta);
+    group.rotation.z = MathUtils.damp(group.rotation.z, flightAngle, 12, delta);
   });
 
   if (!point) {
